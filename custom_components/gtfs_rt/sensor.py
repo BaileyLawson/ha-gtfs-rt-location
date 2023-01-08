@@ -185,25 +185,24 @@ class PublicTransportData(object):
         departure_times = {}    
         
         for entity in feed.entity:
-            if entity.HasField('trip_update'):
-                route_id = entity.vehicle.trip.route_id
+            route_id = entity.vehicle.trip.route_id
 
-                # Get link between vehicle_id from trip_id from vehicles positions if needed
-                vehicle_id = entity.vehicle.vehicle.id
-                if not vehicle_id:
-                    vehicle_id = vehicles_trips.get(entity.vehicle.trip.trip_id)
+            # Get link between vehicle_id from trip_id from vehicles positions if needed
+            vehicle_id = entity.vehicle.vehicle.id
+            if not vehicle_id:
+                vehicle_id = vehicles_trips.get(entity.vehicle.trip.trip_id)
 
-                if route_id not in departure_times:
-                    departure_times[route_id] = {}
-                stop_id = "test"
-                if not departure_times[route_id].get(stop_id):
-                    departure_times[route_id][stop_id] = []
-                details = StopDetails(
-                    datetime.datetime.fromtimestamp(entity.vehicle.timestamp),
-                    vehicle_positions.get(vehicle_id),
-                    vehicle_occupancy.get(vehicle_id)
-                )
-                departure_times[route_id][stop_id].append(details)
+            if route_id not in departure_times:
+                departure_times[route_id] = {}
+            stop_id = "test"
+            if not departure_times[route_id].get(stop_id):
+                departure_times[route_id][stop_id] = []
+            details = StopDetails(
+                datetime.datetime.fromtimestamp(entity.vehicle.timestamp),
+                vehicle_positions.get(vehicle_id),
+                vehicle_occupancy.get(vehicle_id)
+            )
+            departure_times[route_id][stop_id].append(details)
 
         self.info = departure_times
 

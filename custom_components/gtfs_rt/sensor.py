@@ -41,7 +41,7 @@ TIME_STR_FORMAT = "%H:%M"
 
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
-    vol.Required(CONF_TRIP_UPDATE_URL): cv.string,
+    vol.Optional(CONF_TRIP_UPDATE_URL): cv.string,
     vol.Optional(CONF_API_KEY): cv.string,
     vol.Optional(CONF_X_API_KEY): cv.string,
     vol.Optional(CONF_APIKEY): cv.string,
@@ -101,7 +101,7 @@ class PublicTransportSensor(Entity):
         return self._name
 
     def _get_next_buses(self):
-        return self.data.info.get(self._route, {}).get(self._stop, [])
+        return self.data.info.get(self._route, {}).get("test", [])
 
     @property
     def state(self):
@@ -148,7 +148,7 @@ class PublicTransportSensor(Entity):
 class PublicTransportData(object):
     """The Class for handling the data retrieval."""
 
-    def __init__(self, trip_update_url, vehicle_position_url=None, api_key=None, x_api_key=None, apikey=None):
+    def __init__(self, trip_update_url=None, vehicle_position_url=None, api_key=None, x_api_key=None, apikey=None):
         """Initialize the info object."""
         self._trip_update_url = trip_update_url
         self._vehicle_position_url = vehicle_position_url
@@ -182,37 +182,28 @@ class PublicTransportData(object):
         if response.status_code != 200:
             _LOGGER.error("updating route status got {}:{}".format(response.status_code,response.content))
         feed.ParseFromString(response.content)
-        departure_times = {}
+        departure_times = {}    
         
         for entity in feed.entity:
             if entity.HasField('trip_update'):
-                route_id = entity.trip_update.trip.route_id
+                route_id = entity.vehicle.trip.route_id
 
                 # Get link between vehicle_id from trip_id from vehicles positions if needed
-                vehicle_id = entity.trip_update.vehicle.id
+                vehicle_id = entity.vehicle.vehicle.id
                 if not vehicle_id:
-                    vehicle_id = vehicles_trips.get(entity.trip_update.trip.trip_id)
+                    vehicle_id = vehicles_trips.get(entity.vehicle.trip.trip_id)
 
                 if route_id not in departure_times:
                     departure_times[route_id] = {}
-                for stop in entity.trip_update.stop_time_update:
-                    stop_id = stop.stop_id
-                    if not departure_times[route_id].get(stop_id):
-                        departure_times[route_id][stop_id] = []
-                    # Keep only future arrival.time (gtfs data can give past arrival.time, which is useless and show negative time as result)
-                    if int(stop.arrival.time) > int(time.time()):
-                        # Use stop departure time; fall back on stop arrival time if not available
-                        details = StopDetails(
-                            datetime.datetime.fromtimestamp(stop.arrival.time),
-                            vehicle_positions.get(vehicle_id),
-                            vehicle_occupancy.get(vehicle_id)
-                        )
-                        departure_times[route_id][stop_id].append(details)
-
-        # Sort by arrival time
-        for route in departure_times:
-            for stop in departure_times[route]:
-                departure_times[route][stop].sort(key=lambda t: t.arrival_time)
+                stop_id = "test"
+                if not departure_times[route_id].get(stop_id):
+                    departure_times[route_id][stop_id] = []
+                details = StopDetails(
+                    datetime.datetime.fromtimestamp(entity.vehicle.timestamp),
+                    vehicle_positions.get(vehicle_id),
+                    vehicle_occupancy.get(vehicle_id)
+                )
+                departure_times[route_id][stop_id].append(details)
 
         self.info = departure_times
 
